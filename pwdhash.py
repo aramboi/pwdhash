@@ -1,8 +1,18 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+from __future__ import print_function
+
+import sys
 import re
 import hmac
 import itertools
+import codecs
+
+
+if sys.version_info[0] < 3:
+    input = raw_input
 
 
 def b64_hmac_md5(key, data):
@@ -10,8 +20,29 @@ def b64_hmac_md5(key, data):
     return base64-encoded HMAC-MD5 for key and data, with trailing '='
     stripped.
     """
-    bdigest = hmac.HMAC(key, data).digest().encode('base64').strip()
+
+    if sys.version_info[0] < 3:
+        bdigest = hmac.HMAC(key, data).digest().encode('base64').strip()
+    else:
+        data = str2bytes(data)
+        key = str2bytes(key)
+        bdigest = codecs.encode(
+            hmac.HMAC(key, data, 'MD5').digest(),
+            'base64',
+        ).decode().strip()
+
     return re.sub('=+$', '', bdigest)
+
+
+def str2bytes(string):
+    """
+    Returns string encoded to bytes, in way that every letter is represented
+    only by first byte after encoding it with 'UTF-16-LE' encoding.
+    For ascii characters this means that its return is the same as
+    str.encode(), but for other unicode strings (eg. Polish) this does its job.
+    Example: str2bytes('ąśćóasco') --> b'\x05[\x07\xf3asco'
+    """
+    return bytes([letter.encode('utf-16-le')[0] for letter in string])
 
 
 # set of domain suffixes to be kept
@@ -115,7 +146,7 @@ def apply_constraints(phash, size, nonalphanumeric):
 
     def next_between(start, end):
         interval = ord(end) - ord(start) + 1
-        offset = extras.next() % interval
+        offset = next(extras) % interval
         return chr(ord(start) + offset)
 
     for elt, repl in (
@@ -123,19 +154,19 @@ def apply_constraints(phash, size, nonalphanumeric):
         (re.compile('[a-z]'), lambda: next_between('a', 'z')),
         (re.compile('[0-9]'), lambda: next_between('0', '9'))):
         if len(elt.findall(result)) != 0:
-            result += extra_chars.next()
+            result += next(extra_chars)
         else:
             result += repl()
 
     if len(nonword.findall(result)) != 0 and nonalphanumeric:
-        result += extra_chars.next()
+        result += next(extra_chars)
     else:
         result += '+'
 
     while len(nonword.findall(result)) != 0 and not nonalphanumeric:
         result = nonword.sub(next_between('A', 'Z'), result, 1)
 
-    amount = extras.next() % len(result)
+    amount = next(extras) % len(result)
     result = result[amount:] + result[0:amount]
 
     return result
@@ -146,9 +177,10 @@ def console_main():
     if len(sys.argv) > 1:
         domain = sys.argv[1]
     else:
-        domain = raw_input("domain: ").strip()
+        domain = input("domain: ").strip()
 
-    password = getpass.getpass("Password for %s: " % domain)
+    print("Password for {}: ".format(domain), end="")
+    password = getpass.getpass('')
     generated = generate(password, domain)
 
     copied_to_clipboard = False
@@ -176,9 +208,9 @@ def console_main():
             pass
 
     if copied_to_clipboard:
-        print "Password was copied to clipboard."
+        print("Password was copied to clipboard.")
     else:
-        print generated
+        print(generated)
 
 if __name__ == '__main__':
     console_main()
