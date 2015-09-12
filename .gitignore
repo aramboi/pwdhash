@@ -1,0 +1,6 @@
+ref-js
+.ropeproject
+*.pyc
+
+# PyCahrm project files folder
+.idea/
