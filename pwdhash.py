@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import unicode_literals
 from __future__ import print_function
 
-import sys
 import re
+import sys
 import hmac
-import itertools
 import codecs
+import hashlib
+import itertools
 
 
-if sys.version_info[0] < 3:
+PY2 = sys.version_info[0] < 3
+
+if PY2:
     input = raw_input
 
 
@@ -21,15 +23,13 @@ def b64_hmac_md5(key, data):
     stripped.
     """
 
-    if sys.version_info[0] < 3:
-        bdigest = hmac.HMAC(key, data).digest().encode('base64').strip()
-    else:
-        data = str2bytes(data)
-        key = str2bytes(key)
-        bdigest = codecs.encode(
-            hmac.HMAC(key, data, 'MD5').digest(),
-            'base64',
-        ).decode().strip()
+    # For Py3 and Unicode compatibility
+    data = str2bytes(data)
+    key = str2bytes(key)
+
+    # In Py3 hmac.digest() returns bytes, so
+    digest = hmac.HMAC(key, data, hashlib.md5).digest()
+    bdigest = codecs.encode(digest, 'base64').decode().strip()
 
     return re.sub('=+$', '', bdigest)
 
@@ -37,12 +37,16 @@ def b64_hmac_md5(key, data):
 def str2bytes(string):
     """
     Returns string encoded to bytes, in way that every letter is represented
-    only by first byte after encoding it with 'UTF-16-LE' encoding.
+    by only first byte after encoding it with 'UTF-16-LE' encoding.
     For ascii characters this means that its return is the same as
     str.encode(), but for other unicode strings (eg. Polish) this does its job.
     Example: str2bytes('ąśćóasco') --> b'\x05[\x07\xf3asco'
     """
-    return bytes([letter.encode('utf-16-le')[0] for letter in string])
+    u16le = 'utf-16-le'
+    if PY2:
+        sse = sys.stdin.encoding
+        return ''.join([ltr.decode(sse).encode(u16le)[0] for ltr in string])
+    return bytes([letter.encode(u16le)[0] for letter in string])
 
 
 # set of domain suffixes to be kept
@@ -124,7 +128,7 @@ def generate(password, uri):
 
     password_hash = b64_hmac_md5(password, realm)
     size = len(password) + len(_password_prefix)
-    nonalphanumeric = len(re.findall(r'\W', password)) != 0
+    nonalphanumeric = len(re.findall(r'[^a-zA-Z0-9_]', password)) != 0
 
     return apply_constraints(password_hash, size, nonalphanumeric)
 
@@ -177,10 +181,9 @@ def console_main():
     if len(sys.argv) > 1:
         domain = sys.argv[1]
     else:
-        domain = input("domain: ").strip()
+        domain = input("Domain: ").strip()
 
-    print("Password for {}: ".format(domain), end="")
-    password = getpass.getpass('')
+    password = getpass.getpass("Password for {}: ".format(domain))
     generated = generate(password, domain)
 
     copied_to_clipboard = False
