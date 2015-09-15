@@ -141,6 +141,7 @@ def apply_constraints(phash, size, nonalphanumeric):
     if there should be at least one alphanumeric or not.
     """
     starting_size = size - 4
+    starting_size = 0 if starting_size < 0 else starting_size
     result = phash[:starting_size]
 
     extras = itertools.chain((ord(ch) for ch in phash[starting_size:]),
