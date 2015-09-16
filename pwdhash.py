@@ -8,6 +8,7 @@ import sys
 import hmac
 import codecs
 import hashlib
+import getpass
 import itertools
 
 
@@ -178,7 +179,6 @@ def apply_constraints(phash, size, nonalphanumeric):
 
 
 def console_main():
-    import getpass, sys, os
     if len(sys.argv) > 1:
         domain = sys.argv[1]
     else:
@@ -189,27 +189,12 @@ def console_main():
 
     copied_to_clipboard = False
 
-    if sys.platform == "darwin":
-        import subprocess
-        try:
-            pb = subprocess.Popen("pbcopy", stdin=subprocess.PIPE, 
-                                  stdout=open("/dev/null", "w"), 
-                                  stderr=open("/dev/null", "w"))
-            pb.communicate(generated)
-            pb.wait()
-            if pb.returncode == 0:
-                copied_to_clipboard = True
-        except:
-            pass
-    elif 'DISPLAY' in os.environ:
-        try:
-            import gtk
-            clip = gtk.Clipboard()
-            clip.set_text(generated)
-            clip.store()
-            copied_to_clipboard = True
-        except:
-            pass
+    try:
+        import pyperclip
+        pyperclip.copy(generated)
+        copied_to_clipboard = True
+    except ImportError:
+        pass
 
     if copied_to_clipboard:
         print("Password was copied to clipboard.")

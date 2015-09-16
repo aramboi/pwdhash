@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: pwdhash.py
-Version: 0.1.1
+Version: 0.1.2
 Summary: Python Stanford PwdHash implementation
 Home-page: https://github.com/abbot/pwdhash
 Author: Lev Shamardin
@@ -14,9 +14,14 @@ Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
 Classifier: Environment :: X11 Applications
 Classifier: Environment :: MacOS X
+Classifier: Environment :: Windows
 Classifier: License :: OSI Approved :: BSD License
 Classifier: Operating System :: OS Independent
 Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.4
 Classifier: Topic :: Internet
 Classifier: Topic :: Software Development :: Libraries :: Python Modules
 Classifier: Topic :: Utilities
