@@ -3,6 +3,7 @@ ref-js
 *.pyc
 dist/
 build/
+__pycache__
 
 # PyCahrm project files folder
 .idea/

@@ -45,7 +45,7 @@ def str2bytes(string):
     """
     u16le = 'utf-16-le'
     if PY2:
-        sse = sys.stdin.encoding
+        sse = sys.stdin.encoding or 'utf-8'
         return ''.join([ltr.decode(sse).encode(u16le)[0] for ltr in string])
     return bytes([letter.encode(u16le)[0] for letter in string])
 
@@ -156,9 +156,9 @@ def apply_constraints(phash, size, nonalphanumeric):
         return chr(ord(start) + offset)
 
     for elt, repl in (
-        (re.compile('[A-Z]'), lambda: next_between('A', 'Z')),
-        (re.compile('[a-z]'), lambda: next_between('a', 'z')),
-        (re.compile('[0-9]'), lambda: next_between('0', '9'))):
+            (re.compile('[A-Z]'), lambda: next_between('A', 'Z')),
+            (re.compile('[a-z]'), lambda: next_between('a', 'z')),
+            (re.compile('[0-9]'), lambda: next_between('0', '9'))):
         if len(elt.findall(result)) != 0:
             result += next(extra_chars)
         else:

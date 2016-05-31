@@ -2,3 +2,4 @@ syntax: glob
 ref-js
 .ropeproject
 *.pyc
+__pycache__
