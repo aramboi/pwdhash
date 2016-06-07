@@ -1,9 +1,9 @@
 ref-js
 .ropeproject
 *.pyc
+*.egg-info/
 dist/
 build/
+.cache/
 __pycache__
-
-# PyCahrm project files folder
-.idea/
+.tox
