@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import re
 import sys
@@ -13,6 +13,7 @@ import itertools
 
 
 PY2 = sys.version_info[0] < 3
+PASSWORD_PREFIX = "@@"
 
 if PY2:
     input = raw_input
@@ -20,7 +21,7 @@ if PY2:
 
 def b64_hmac_md5(key, data):
     """
-    return base64-encoded HMAC-MD5 for key and data, with trailing '='
+    return base64-encoded HMAC-MD5 for key and data, with trailing "="
     stripped.
     """
 
@@ -30,24 +31,24 @@ def b64_hmac_md5(key, data):
 
     # In Py3 hmac.digest() returns bytes, so
     digest = hmac.HMAC(key, data, hashlib.md5).digest()
-    bdigest = codecs.encode(digest, 'base64').decode().strip()
+    bdigest = codecs.encode(digest, "base64").decode().strip()
 
-    return re.sub('=+$', '', bdigest)
+    return re.sub("=+$", "", bdigest)
 
 
 def str2bytes(string):
     """
     Returns string encoded to bytes, in way that every letter is represented
-    by only first byte after encoding it with 'UTF-16-LE' encoding.
+    by only first byte after encoding it with "UTF-16-LE" encoding.
     For ascii characters this means that its return is the same as
     str.encode(), but for other unicode strings (eg. Polish) this does its job.
-    Example: str2bytes('ąśćóasco') --> b'\x05[\x07\xf3asco'
+    Example: str2bytes("ąśćóasco") --> b"\x05[\x07\xf3asco"
     """
-    u16le = 'utf-16-le'
+    u16le = "utf-16-le"
+    encoded = (letter.encode(u16le)[0] for letter in string)
     if PY2:
-        sse = sys.stdin.encoding or 'utf-8'
-        return ''.join([ltr.decode(sse).encode(u16le)[0] for ltr in string])
-    return bytes([letter.encode(u16le)[0] for letter in string])
+        return b''.join(encoded)
+    return bytes(encoded)
 
 
 # set of domain suffixes to be kept
@@ -107,15 +108,12 @@ def extract_domain(host):
     """
     Domain name extractor. Turns host names into domain names, ported
     from pwdhash javascript code"""
-    host = re.sub('https?://', '', host)
-    host = re.match('([^/]+)', host).groups()[0]
-    domain = '.'.join(host.split('.')[-2:])
+    host = re.sub("https?://", "", host)
+    host = re.match("([^/]+)", host).groups()[0]
+    domain = ".".join(host.split(".")[-2:])
     if domain in _domains:
-        domain = '.'.join(host.split('.')[-3:])
+        domain = ".".join(host.split(".")[-3:])
     return domain
-
-
-_password_prefix = '@@'
 
 
 def generate(password, uri):
@@ -124,58 +122,57 @@ def generate(password, uri):
     domain name.
     """
     realm = extract_domain(uri)
-    if password.startswith(_password_prefix):
-        password = password[len(_password_prefix):]
+    if password.startswith(PASSWORD_PREFIX):
+        password = password[len(PASSWORD_PREFIX):]
 
     password_hash = b64_hmac_md5(password, realm)
-    size = len(password) + len(_password_prefix)
-    nonalphanumeric = len(re.findall(r'[^a-zA-Z0-9_]', password)) != 0
+    size = len(password) + len(PASSWORD_PREFIX)
+    is_non_alphanumeric = bool(re.search(r"[^a-zA-Z0-9_]", password))
 
-    return apply_constraints(password_hash, size, nonalphanumeric)
+    return apply_constraints(password_hash, size, is_non_alphanumeric)
 
 
-def apply_constraints(phash, size, nonalphanumeric):
+def apply_constraints(password_hash, size, is_non_alphanumeric):
     """
     Fiddle with the password a bit after hashing it so that it will
     get through most website filters. We require one upper and lower
     case, one digit, and we look at the user's password to determine
     if there should be at least one alphanumeric or not.
     """
-    starting_size = size - 4
-    starting_size = 0 if starting_size < 0 else starting_size
-    result = phash[:starting_size]
+    starting_size = 0 if size < 4 else size - 4
+    result = password_hash[:starting_size]
 
-    extras = itertools.chain((ord(ch) for ch in phash[starting_size:]),
+    extras = itertools.chain((ord(ch) for ch in password_hash[starting_size:]),
                              itertools.repeat(0))
     extra_chars = (chr(ch) for ch in extras)
-    nonword = re.compile(r'\W')
 
     def next_between(start, end):
         interval = ord(end) - ord(start) + 1
         offset = next(extras) % interval
         return chr(ord(start) + offset)
 
-    for elt, repl in (
-            (re.compile('[A-Z]'), lambda: next_between('A', 'Z')),
-            (re.compile('[a-z]'), lambda: next_between('a', 'z')),
-            (re.compile('[0-9]'), lambda: next_between('0', '9'))):
-        if len(elt.findall(result)) != 0:
+    chars_ranges = (("A", "Z"), ("a", "z"), ("0", "9"))
+
+    for first, last in chars_ranges:
+        any_of_chars = re.compile("[{}-{}]".format(first, last))
+        if any_of_chars.search(result):
             result += next(extra_chars)
         else:
-            result += repl()
+            result += next_between(first, last)
 
-    if len(nonword.findall(result)) != 0 and nonalphanumeric:
+    non_word = re.compile(r"\W")
+    if non_word.search(result) and is_non_alphanumeric:
         result += next(extra_chars)
     else:
-        result += '+'
+        result += "+"
 
-    while len(nonword.findall(result)) != 0 and not nonalphanumeric:
-        result = nonword.sub(next_between('A', 'Z'), result, 1)
+    while non_word.search(result) and not is_non_alphanumeric:
+        result = non_word.sub(next_between("A", "Z"), result, 1)
 
     amount = next(extras) % len(result)
-    result = result[amount:] + result[0:amount]
+    result = result[amount:] + result[:amount]
 
-    return result
+    return result.replace("\x00", "")
 
 
 def console_main():
@@ -201,5 +198,6 @@ def console_main():
     else:
         print(generated)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     console_main()
