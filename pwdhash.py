@@ -11,12 +11,13 @@ import hashlib
 import getpass
 import itertools
 
+import pyperclip
 
 PY2 = sys.version_info[0] < 3
 PASSWORD_PREFIX = "@@"
 
 if PY2:
-    input = raw_input
+    input = raw_input  # noqa F821 (on Py3.x static_analysis would never pass)
 
 
 def b64_hmac_md5(key, data):
@@ -184,19 +185,12 @@ def console_main():
     password = getpass.getpass("Password for {}: ".format(domain))
     generated = generate(password, domain)
 
-    copied_to_clipboard = False
-
     try:
-        import pyperclip
         pyperclip.copy(generated)
-        copied_to_clipboard = True
-    except ImportError:
-        pass
-
-    if copied_to_clipboard:
         print("Password was copied to clipboard.")
-    else:
-        print(generated)
+    except pyperclip.exceptions.PyperclipException as error:
+        print(error, '\n')
+        print("Your password: {}".format(generated))
 
 
 if __name__ == "__main__":
