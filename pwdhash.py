@@ -20,7 +20,7 @@ if PY2:
     input = raw_input  # noqa F821 (on Py3.x static_analysis would never pass)
 
 
-def b64_hmac_md5(key, data):
+def _b64_hmac_md5(key, data):
     """
     return base64-encoded HMAC-MD5 for key and data, with trailing "="
     stripped.
@@ -126,14 +126,14 @@ def generate(password, uri):
     if password.startswith(PASSWORD_PREFIX):
         password = password[len(PASSWORD_PREFIX):]
 
-    password_hash = b64_hmac_md5(password, realm)
+    password_hash = _b64_hmac_md5(password, realm)
     size = len(password) + len(PASSWORD_PREFIX)
     is_non_alphanumeric = bool(re.search(r"[^a-zA-Z0-9_]", password))
 
-    return apply_constraints(password_hash, size, is_non_alphanumeric)
+    return _apply_constraints(password_hash, size, is_non_alphanumeric)
 
 
-def apply_constraints(password_hash, size, is_non_alphanumeric):
+def _apply_constraints(password_hash, size, is_non_alphanumeric):
     """
     Fiddle with the password a bit after hashing it so that it will
     get through most website filters. We require one upper and lower
@@ -170,27 +170,31 @@ def apply_constraints(password_hash, size, is_non_alphanumeric):
     while non_word.search(result) and not is_non_alphanumeric:
         result = non_word.sub(next_between("A", "Z"), result, 1)
 
-    amount = next(extras) % len(result)
-    result = result[amount:] + result[:amount]
+    flip_place = next(extras) % len(result)
+    result = result[flip_place:] + result[:flip_place]
 
-    return result.replace("\x00", "")
+    return result.strip("\x00")
 
 
 def console_main():
     if len(sys.argv) > 1:
-        domain = sys.argv[1]
+        uri = sys.argv[1]
     else:
-        domain = input("Domain: ").strip()
+        uri = input("Domain: ").strip()
 
+    domain = extract_domain(uri)
     password = getpass.getpass("Password for {}: ".format(domain))
+    if PY2:
+        # getpass returns str (bytes) instead of unicode in Py2
+        password = password.decode('utf-8')
     generated = generate(password, domain)
 
     try:
         pyperclip.copy(generated)
-        print("Password was copied to clipboard.")
+        print("\nHashed password was copied to clipboard.")
     except pyperclip.exceptions.PyperclipException as error:
-        print(error, '\n')
-        print("Your password: {}".format(generated))
+        print(error)
+        print("\nHashed password: {}".format(generated))
 
 
 if __name__ == "__main__":

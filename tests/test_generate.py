@@ -5,10 +5,11 @@ import pwdhash
 from nose_parameterized import parameterized
 
 PASSWORD = "password12345"
+DOMAIN = "example.com"
 TEST_PARAMETERS = (
     (
         "default_password_example_domain",
-        PASSWORD, "example.com", "0JMBoaKI7NFhObN",
+        PASSWORD, DOMAIN, "0JMBoaKI7NFhObN",
     ),
     (
         "default_password_google_domain",
@@ -19,67 +20,43 @@ TEST_PARAMETERS = (
         PASSWORD, "facebook.com", "vYbDjKWA5RoWEWJ",
     ),
     (
-        "default_password_example_domain_with_protocol",
-        PASSWORD, "http://example.com", "0JMBoaKI7NFhObN",
-    ),
-    (
-        "default_password_google_domain_with_protocol",
-        PASSWORD, "https://google.com", "YzvXOvv3tyZ0PIn",
-    ),
-    (
-        "default_password_facebook_domain_with_protocol",
-        PASSWORD, "https://facebook.com", "vYbDjKWA5RoWEWJ",
-    ),
-    (
-        "default_password_example_domain_with_subdomain",
-        PASSWORD, "http://bogus.example.com", "0JMBoaKI7NFhObN",
-    ),
-    (
-        "default_password_google_domain_with_subdomain",
-        PASSWORD, "https://accounts.google.com", "YzvXOvv3tyZ0PIn",
-    ),
-    (
-        "default_password_facebook_domain_with_subdomain",
-        PASSWORD, "https://www.facebook.com", "vYbDjKWA5RoWEWJ",
-    ),
-    (
-        "default_password_example_domain_with_query_params",
-        PASSWORD, "http://bogus.example.com/path?test=test",
-        "0JMBoaKI7NFhObN",
-    ),
-    (
-        "default_password_google_domain_with_query_params",
-        PASSWORD, "https://accounts.google.com/path/?test=test",
-        "YzvXOvv3tyZ0PIn",
-    ),
-    (
-        "default_password_facebook_domain_with_query_params",
-        PASSWORD, "https://facebook.com/path?test=test", "vYbDjKWA5RoWEWJ",
-    ),
-    (
         "empty_password",
-        "", "example.com", "2MPb",
+        "", DOMAIN, "2MPb",
     ),
     (
         "short_password",
-        "123", "example.com", "7SXmR",
+        "123", DOMAIN, "7SXmR",
     ),
     (
         "polish_unicode_password",
-        "Zażółć gęślą jaźń", "example.com", "a3o9/S1NiAkwMr6BJzD",
+        "Zażółć gęślą jaźń", DOMAIN, "a3o9/S1NiAkwMr6BJzD",
     ),
     (
         "czech_unicode_password",
-        "Příliš žluťoučký kůň úpěl ďábelské kódy", "example.com",
+        "Příliš žluťoučký kůň úpěl ďábelské kódy", DOMAIN,
         "ti+BTLNFRbS7vnJ5uFOs2w",
     ),
     (
         "hungarian_unicode_password",
-        "Árvíztűrő tükörfúrógép", "example.com", "jYNNgw1//znH8/aFIU19+g",
+        "Árvíztűrő tükörfúrógép", DOMAIN, "jYNNgw1//znH8/aFIU19+g",
     ),
     (
         "password_with_prefix",
-        pwdhash.PASSWORD_PREFIX + PASSWORD, "example.com", "0JMBoaKI7NFhObN",
+        pwdhash.PASSWORD_PREFIX + PASSWORD, DOMAIN, "0JMBoaKI7NFhObN",
+    ),
+    # check if generate() has extract_domain attached (to work as standalone)
+    (
+        "default_password_example_domain_with_protocol",
+        PASSWORD, "http://{}".format(DOMAIN), "0JMBoaKI7NFhObN",
+    ),
+    (
+        "default_password_example_domain_with_subdomain",
+        PASSWORD, "http://bogus.{}".format(DOMAIN), "0JMBoaKI7NFhObN",
+    ),
+    (
+        "default_password_example_domain_with_query_params",
+        PASSWORD, "http://bogus.{}/path?test=test".format(DOMAIN),
+        "0JMBoaKI7NFhObN",
     ),
 
 )
